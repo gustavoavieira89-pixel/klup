@@ -1,444 +1,57 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KLUP — Kashback que vira lucro recorrente</title>
-  <style>
-    :root{
-      --brand:#B4FF00;        /* KLUP neon */
-      --paper:#0A0B0D;        /* fundo escuro */
-      --card:#121317;         /* cards */
-      --ink:#F2F5F7;          /* texto principal */
-      --muted:#9BA3AE;        /* texto secundário */
-      --ok:#22c55e;           /* verde sucesso */
-      --warn:#f59e0b;         /* âmbar */
-      --bad:#ef4444;          /* vermelho */
-      --accent:#2A2F36;       /* traços/sutilezas */
-      --radius:22px;          /* cantos arredondados */
-      --shadow:0 10px 30px rgba(0,0,0,.35);
-      --shadow-soft:0 6px 16px rgba(0,0,0,.25);
-    }
-
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; background:radial-gradient(1200px 800px at 20% -10%, rgba(180,255,0,.08), transparent 60%),
-                               radial-gradient(1200px 800px at 120% 110%, rgba(180,255,0,.06), transparent 60%),
-                               var(--paper);
-      color:var(--ink);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      line-height:1.35;
-      -webkit-font-smoothing:antialiased;
-    }
-
-    /* Deck */
-    .deck{ width:100%; max-width:1440px; margin:0 auto; padding:32px; }
-    .slide{
-      width:100%; min-height:720px; /* 16:9 friendly */
-      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.0)), var(--card);
-      border:1px solid rgba(255,255,255,.06);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      padding:56px; margin:24px 0; position:relative; overflow:hidden;
-      display:grid; gap:18px; align-content:start;
-    }
-    .slide .brandbar{
-      position:absolute; inset:0 auto 0 0; width:6px; background:var(--brand);
-      box-shadow: 0 0 0 1px rgba(180,255,0,.25);
-    }
-    .k-badge{display:inline-flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.5px}
-    .k-dot{width:12px; height:12px; border-radius:999px; background:var(--brand); box-shadow:0 0 0 6px rgba(180,255,0,.15)}
-
-    h1{font-size:48px; line-height:1.1; margin:0; font-weight:900}
-    h2{font-size:28px; margin:0; font-weight:800; color:var(--brand)}
-    h3{font-size:22px; margin:0; font-weight:800}
-    p{font-size:18px; color:var(--ink)}
-    .muted{color:var(--muted)}
-
-    .grid{display:grid; gap:18px}
-    .cols-2{grid-template-columns:1fr 1fr}
-    .cols-3{grid-template-columns:repeat(3, 1fr)}
-    .cols-4{grid-template-columns:repeat(4, 1fr)}
-    @media (max-width:980px){ .cols-2,.cols-3,.cols-4{grid-template-columns:1fr} .slide{padding:32px; min-height:auto} h1{font-size:36px} h2{font-size:24px} }
-
-    .card{background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.0)), var(--accent);
-          border:1px solid rgba(255,255,255,.06); border-radius:18px; padding:18px 18px 16px; box-shadow:var(--shadow-soft)}
-    .chip{display:inline-flex; align-items:center; gap:8px; font-size:14px; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03)}
-    .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
-
-    ul.klist{margin:8px 0 0 0; padding:0; list-style:none; display:grid; gap:10px}
-    ul.klist li{display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:start}
-    .tick{width:22px; height:22px; border-radius:8px; background:rgba(180,255,0,.08); border:1px solid rgba(180,255,0,.35); display:grid; place-items:center; font-weight:900; color:var(--brand)}
-
-    .big-stat{font-size:56px; font-weight:900; letter-spacing:-.5px}
-    .stat-sub{font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px}
-
-    .table{width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:14px; border:1px solid rgba(255,255,255,.08)}
-    .table th,.table td{padding:12px 14px; text-align:left}
-    .table thead th{font-size:14px; color:var(--muted); background:rgba(255,255,255,.02)}
-    .table tbody tr+tr td{border-top:1px solid rgba(255,255,255,.06)}
-    .badge{padding:4px 8px; border-radius:999px; background:rgba(180,255,0,.12); color:var(--brand); font-size:12px; font-weight:700}
-
-    /* Mini charts */
-    .bar{height:10px; background:rgba(255,255,255,.08); border-radius:999px; overflow:hidden; position:relative}
-    .bar > i{display:block; height:100%; background:linear-gradient(90deg, var(--brand), rgba(180,255,0,.65)); width:0}
-    .bar[data-pct="85"] > i{width:85%}
-    .bar[data-pct="57"] > i{width:57%}
-    .bar[data-pct="43"] > i{width:43%}
-    .bar[data-pct="25"] > i{width:25%}
-    .bar[data-pct="95"] > i{width:95%}
-
-    /* Donut chart */
-    .donut{width:210px; height:210px}
-    .donut circle{fill:none; stroke-width:22}
-    .donut .bg{stroke:rgba(255,255,255,.09)}
-    .donut .fg{stroke:var(--brand); stroke-linecap:round; transform:rotate(-90deg); transform-origin:50% 50%}
-
-    /* Print (PDF): 1 página por slide */
-    @media print{
-      body{background:white}
-      .deck{padding:0}
-      .slide{margin:0 0 16mm 0; page-break-after:always; min-height:auto; box-shadow:none; border:1px solid #ddd}
-      .slide .brandbar{display:none}
-    }
-  </style>
-</head>
-<body>
-  <div class="deck">
-
-    <!-- SLIDE 1: CAPA -->
-    <section class="slide">
-      <div class="brandbar"></div>
-      <div class="k-badge"><span class="k-dot"></span><span>KLUP — Fidelização que vira caixa</span></div>
-      <h1>Cashback (Kashback) não é desconto.<br/>É <span style="color:var(--brand)">investimento</span> para multiplicar seu lucro recorrente.</h1>
-      <p class="muted">Pitch executivo para varejistas — preparado por KLUP. Cadastro simples: só telefone, sem CPF. Dados de 1ª parte na sua mão.</p>
-      <div class="grid cols-3" style="margin-top:18px">
-        <div class="card">
-          <div class="stat-sub">Gasto por cliente com cashback</div>
-          <div class="big-stat">+85%</div>
-          <div class="bar" data-pct="85"><i></i></div>
-        </div>
-        <div class="card">
-          <div class="stat-sub">Lucro ao reter +5%</div>
-          <div class="big-stat">+25% → +95%</div>
-          <div class="bar" data-pct="95"><i></i></div>
-        </div>
-        <div class="card">
-          <div class="stat-sub">Vendas de clientes recorrentes</div>
-          <div class="big-stat">57,1%</div>
-          <div class="bar" data-pct="57"><i></i></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 2: O DESAFIO DO VAREJO -->
-    <section class="slide">
-      <div class="brandbar"></div>
-      <h2>1) O desafio do varejo hoje</h2>
-      <div class="grid cols-2">
-        <div class="card">
-          <h3>Contexto</h3>
-          <ul class="klist">
-            <li><span class="tick">✓</span><span>Concorrência alta e sensibilidade a preço: cliente troca de loja com 1 clique.</span></li>
-            <li><span class="tick">✓</span><span>Margens comprimidas: guerra de desconto destrói rentabilidade.</span></li>
-            <li><span class="tick">✓</span><span>Falta de dados de 1ª parte: sem CRM real, você não sabe <em>quem</em> compra, <em>quando</em> e <em>quanto</em>.</span></li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>Pergunta chave</h3>
-          <p style="font-size:24px; font-weight:800">Como fazer o cliente voltar mais vezes, gastar mais e parar de ir para a concorrência?</p>
-          <p class="muted">Resposta curta: <strong style="color:var(--brand)">Kashback</strong> — benefício inteligente que convida para a próxima compra e cria recorrência.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 3: COMO FUNCIONA -->
-    <section class="slide">
-      <div class="brandbar"></div>
-      <h2>2) Como funciona o Kashback KLUP</h2>
-      <div class="grid cols-3">
-        <div class="card"><span class="chip">1</span>
-          <h3>Compra normal</h3>
-          <p>Preço cheio no PDV. Sem mexer na etiqueta. Sem confusão operacional.</p>
-        </div>
-        <div class="card"><span class="chip">2</span>
-          <h3>Crédito devolvido</h3>
-          <p>Cliente recebe uma % de volta como saldo. <strong>Cadastro só com telefone</strong> — fricção mínima.</p>
-        </div>
-        <div class="card"><span class="chip">3</span>
-          <h3>Retorno garantido</h3>
-          <p>O saldo é um convite para a <strong>próxima compra</strong>. Você cria hábito, recorrência e LTV.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 4: IMPACTO COM NÚMEROS -->
-    <section class="slide">
-      <div class="brandbar"></div>
-      <h2>3) Impacto comprovado</h2>
-      <div class="grid cols-2">
-        <div class="card">
-          <h3>Mais gasto por shopper</h3>
-          <p class="muted">Varejistas com cashback reportam até:</p>
-          <div class="big-stat">+85%</div>
-          <p>em <strong>gasto por cliente</strong> vs. quem não oferece.</p>
-          <div class="bar" data-pct="85"><i></i></div>
-        </div>
-        <div class="card">
-          <h3>Recorrência que vira lucro</h3>
-          <p>Reter apenas <strong>+5%</strong> clientes pode elevar o <strong>lucro em 25% → 95%</strong>.</p>
-          <div class="grid cols-2">
-            <div>
-              <div class="stat-sub">Lucro</div>
-              <div class="big-stat">▲ 25–95%</div>
-            </div>
-            <div>
-              <svg class="donut" viewBox="0 0 100 100" aria-label="Donut de lucro">
-                <circle class="bg" cx="50" cy="50" r="40"></circle>
-                <circle class="fg" cx="50" cy="50" r="40" stroke-dasharray="60 251"></circle>
-              </svg>
-              <div class="muted" style="text-align:center">Exemplo ilustrativo</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <h3>O poder da base</h3>
-        <p>Em segmentos de varejo no Brasil, a média de <strong>vendas de clientes recorrentes chega a 57,1%</strong>. Construir recorrência é construir caixa.</p>
-      </div>
-    </section>
-
-    <!-- SLIDE 5: GRÁFICO 1 -->
-    <section class="slide">
-      <div class="brandbar"></div>
-      <h2>4) Gasto por cliente: sem vs. com Kashback</h2>
-      <div class="grid cols-2">
-        <div class="card">
-          <h3>Comparativo (índice base = 100)</h3>
-          <table class="table">
-            <thead><tr><th>Cenário</th><th>Índice</th><th>Variação</th></tr></thead>
-            <tbody>
-              <tr><td>Sem cashback</td><td>100</td><td><span class="badge bad">—</span></td></tr>
-              <tr><td>Com cashback</td><td>185</td><td><span class="badge">+85%</span></td></tr>
-            </tbody>
-          </table>
-          <p class="muted">Fonte: benchmarks de mercado. Valores ilustrativos para apresentação executiva.</p>
-        </div>
-        <div class="card">
-          <h3>Visual</h3>
-          <svg viewBox="0 0 560 220" width="100%" height="220" role="img" aria-label="Barras comparativas">
-            <rect x="40" y="40" width="120" height="120" rx="8" fill="rgba(255,255,255,.08)"/>
-            <rect x="40" y="160" width="120" height="0" fill="none"/>
-            <rect x="40" y="100" width="120" height="60" rx="8" fill="rgba(255,255,255,.18)"/>
-            <text x="100" y="190" fill="var(--muted)" text-anchor="middle" font-size="14">Sem</text>
-
-            <rect x="240" y="40" width="120" height="120" rx="8" fill="rgba(255,255,255,.08)"/>
-            <rect x="240" y="40" width="120" height="120" rx="8" fill="url(#grad)"/>
-            <text x="300" y="190" fill="var(--muted)" text-anchor="middle" font-size="14">Com</text>
-
-            <defs>
-              <linearGradient id="grad" x1="0" x2="1">
-                <stop offset="0%" stop-color="var(--brand)"/>
-                <stop offset="100%" stop-color="rgba(180,255,0,.65)"/>
-              </linearGradient>
-            </defs>
-          </svg>
-          <p class="muted">Com Kashback, os clientes tendem a gastar mais para acumular e resgatar.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 6: GRÁFICO 2 -->
-    <section class="slide">
-      <div class="brandbar"></div>
-      <h2>5) Recorrência que paga as contas</h2>
-      <div class="grid cols-2">
-        <div class="card">
-          <h3>Participação de vendas recorrentes</h3>
-          <svg class="donut" viewBox="0 0 100 100" aria-label="Donut de recorrência">
-            <circle class="bg" cx="50" cy="50" r="40"></circle>
-            <!-- 57% de fill -->
-            <circle class="fg" cx="50" cy="50" r="40" stroke-dasharray="144 251"></circle>
-          </svg>
-          <p style="margin-top:8px"><span class="big-stat">57,1%</span><br><span class="muted">Vendas vindas de clientes recorrentes</span></p>
-        </div>
-        <div class="card">
-          <h3>Tradução em caixa</h3>
-          <ul class="klist">
-            <li><span class="tick">✓</span><span>Mais previsibilidade de faturamento mês a mês.</span></li>
-            <li><span class="tick">✓</span><span>Menor dependência de promoções agressivas.</span></li>
-            <li><span class="tick">✓</span><span>Melhor uso do estoque e da equipe (demanda mais estável).</span></li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 7: CASHBACK ≠ DESCONTO -->
-    <section class="slide">
-      <div class="brandbar"></div>
-      <h2>6) Cashback ≠ Desconto</h2>
-      <div class="grid cols-2">
-        <div class="card">
-          <h3>Desconto (caminho fácil)</h3>
-          <ul class="klist">
-            <li><span class="tick">✗</span><span>Perda direta de margem.</span></li>
-            <li><span class="tick">✗</span><span>Sem garantia de retorno.</span></li>
-            <li><span class="tick">✗</span><span>Acostuma o cliente a esperar o preço cair.</span></li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>Kashback (investimento)</h3>
-          <ul class="klist">
-            <li><span class="tick">✓</span><span>Devolve parte do valor como <strong>convite</strong> à próxima compra.</span></li>
-            <li><span class="tick">✓</span><span>Aumenta ticket médio e frequência.</span></li>
-            <li><span class="tick">✓</span><span>Cria hábito, fidelidade e dados (1ª parte) para CRM.</span></li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 8: CUSTO DE PERDER CLIENTE -->
-    <section class="slide">
-      <div class="brandbar"></div>
-      <h2>7) Quanto custa perder um cliente?</h2>
-      <div class="grid cols-3">
-        <div class="card">
-          <h3>CAC</h3>
-          <p>Marketing, mídia, equipe, ferramentas, comissão. Conquistar é caro.</p>
-        </div>
-        <div class="card">
-          <h3>LTV</h3>
-          <p>Sem retenção, você perde todo o potencial de compras futuras.</p>
-        </div>
-        <div class="card">
-          <h3>Regra de ouro</h3>
-          <p>LTV deve ser <strong>≥ 3x CAC</strong>. Sem fidelidade, essa conta não fecha.</p>
-        </div>
-      </div>
-      <div class="card">
-        <h3>Exemplo simples</h3>
-        <p>Se o cliente gasta R$ 100/mês, margem 25%, churn 5%/mês, o LTV estimado ≈ <strong>R$ 500</strong>. Cada cliente perdido custa centenas de reais em lucro potencial.</p>
-      </div>
-    </section>
-
-    <!-- SLIDE 9: ROI DA RECORRÊNCIA -->
-    <section class="slide">
-      <div class="brandbar"></div>
-      <h2>8) ROI da Recorrência com Kashback</h2>
-      <div class="grid cols-2">
-        <div class="card">
-          <h3>Modelo mental</h3>
-          <ul class="klist">
-            <li><span class="tick">✓</span><span>Cada real de Kashback é uma <strong>semente</strong> de próxima compra.</span></li>
-            <li><span class="tick">✓</span><span>Você transforma venda única em <strong>assinatura comportamental</strong>.</span></li>
-            <li><span class="tick">✓</span><span>Mais visitas × ticket maior × margem saudável = lucro previsível.</span></li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>Simulação rápida</h3>
-          <table class="table">
-            <thead><tr><th>Fator</th><th>Antes</th><th>Depois</th><th>Efeito</th></tr></thead>
-            <tbody>
-              <tr><td>Frequência mensal</td><td>1,0x</td><td>1,3x</td><td><span class="badge">+30%</span></td></tr>
-              <tr><td>Ticket médio</td><td>R$ 100</td><td>R$ 115</td><td><span class="badge">+15%</span></td></tr>
-              <tr><td>Margem líquida</td><td>22%</td><td>24%</td><td><span class="badge">+2 p.p.</span></td></tr>
-              <tr><td>Lucro mensal / cliente</td><td>R$ 22</td><td>R$ 35,9</td><td><span class="badge">+63%</span></td></tr>
-            </tbody>
-          </table>
-          <p class="muted">Valores ilustrativos para demostrar o efeito composto da recorrência.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 10: 30•60•90 -->
-    <section class="slide">
-      <div class="brandbar"></div>
-      <h2>9) Plano de ativação 30 • 60 • 90</h2>
-      <div class="grid cols-3">
-        <div class="card">
-          <h3>30 dias — Lançamento</h3>
-          <ul class="klist">
-            <li><span class="tick">✓</span><span>Definir % de Kashback por categoria (equilíbrio de margem).</span></li>
-            <li><span class="tick">✓</span><span>Treinar equipe (pitch de cadastro em 10 segundos).</span></li>
-            <li><span class="tick">✓</span><span>Comunicação no PDV + WhatsApp (base atual).</span></li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>60 dias — Aceleração</h3>
-          <ul class="klist">
-            <li><span class="tick">✓</span><span>Campanhas de <em>resgate</em> para clientes com saldo parado.</span></li>
-            <li><span class="tick">✓</span><span>Ofertas gamificadas (ex.: 2x Kashback em dias de menor fluxo).</span></li>
-            <li><span class="tick">✓</span><span>Segmentação por comportamento (ticket, frequência).</span></li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>90 dias — Escala</h3>
-          <ul class="klist">
-            <li><span class="tick">✓</span><span>Programa de indicações (Member‑Get‑Member).</span></li>
-            <li><span class="tick">✓</span><span>Benchmarks por loja/categoria e ajuste fino da %.</span></li>
-            <li><span class="tick">✓</span><span>Dashboards semanais (retenção, saldo, resgate, LTV).</span></li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 11: DADOS E CRM -->
-    <section class="slide">
-      <div class="brandbar"></div>
-      <h2>10) Dados e CRM que viram venda</h2>
-      <div class="grid cols-2">
-        <div class="card">
-          <h3>Cadastro simples</h3>
-          <p><strong>Só telefone</strong>. Sem CPF. Baixa fricção = mais adesão.</p>
-          <p>Você passa a ter dados de 1ª parte: frequência, ticket, categorias, recência.</p>
-        </div>
-        <div class="card">
-          <h3>Ações inteligentes</h3>
-          <ul class="klist">
-            <li><span class="tick">✓</span><span>Campanhas por WhatsApp/SMS para resgate de saldo.</span></li>
-            <li><span class="tick">✓</span><span>Segmentos de alto potencial (VIP, em risco, novos).</span></li>
-            <li><span class="tick">✓</span><span>Ofertas personalizadas sem depender de desconto raso.</span></li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 12: FECHAMENTO -->
-    <section class="slide">
-      <div class="brandbar"></div>
-      <h2>11) Conclusão: não deixe dinheiro na mesa</h2>
-      <div class="grid cols-2">
-        <div class="card">
-          <h3>Se você não usa Kashback…</h3>
-          <ul class="klist">
-            <li><span class="tick">✗</span><span>Entrega seus clientes (e seu LTV) ao concorrente.</span></li>
-            <li><span class="tick">✗</span><span>Vive da guerra de preços e margens baixas.</span></li>
-            <li><span class="tick">✗</span><span>Fica sem dados para decidir e crescer.</span></li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>Com KLUP, você…</h3>
-          <ul class="klist">
-            <li><span class="tick">✓</span><span>Cria recorrência e aumenta ticket médio.</span></li>
-            <li><span class="tick">✓</span><span>Constrói comunidade e previsibilidade de caixa.</span></li>
-            <li><span class="tick">✓</span><span>Investe para lucrar mais. <strong>Cashback que volta em vendas.</strong></span></li>
-          </ul>
-        </div>
-      </div>
-      <p style="margin-top:6px" class="muted">“Cada real investido em Kashback volta para o seu caixa em forma de recorrência, fidelidade e crescimento previsível.”</p>
-    </section>
-
+<!-- SLIDE 9: RESULTADOS REAIS -->
+<section class="slide">
+  <div class="brandbar"></div>
+  <img class="logoimg" src="Logo-KLUP_Verde (1).png" alt="KLUP logo"/>
+  <div style="position:absolute; top:20px; left:24px;">
+    <span class="chip">Dados validados KLUP</span>
   </div>
+  <h2>9) Resultados Reais • Últimos 90 dias</h2>
+  <p class="muted" style="margin-top:-6px">Recorte ilustrativo para apresentação executiva — amostra composta por estabelecimentos com KLUP ativo.</p>
 
-  <!--
-    👉 Como exportar em PDF (Chrome/Edge):
-    1) Ctrl/Cmd+P
-    2) Destino: Salvar como PDF
-    3) Layout: Retrato (ou Paisagem, se preferir)
-    4) Margens: Padrão
-    5) Opções: Marcar “Gráficos de fundo”/“Fundos”
-    6) Cada .slide vira 1 página automaticamente
-  -->
-</body>
-</html>
+  <div class="grid cols-3" style="gap:24px; margin-top:6px">
+    <div class="card" style="border-color: rgba(180,255,0,.25); box-shadow: 0 0 0 1px rgba(180,255,0,.12) inset;">
+      <div class="chip">Faturamento</div>
+      <h3 style="margin-top:10px" class="row">
+        <img class="avatar" src="407488643_1070545657411075_2013298648904261166_n.jpg" alt="Wordmif"/> @word_mif
+      </h3>
+      <p><span class="big-stat">+18%</span><br><span class="muted">de faturamento</span></p>
+      <div class="bar" data-pct="18"><i></i><span class="label">+18%</span></div>
+    </div>
+
+    <div class="card">
+      <div class="chip">Faturamento</div>
+      <h3 style="margin-top:10px" class="row">
+        <img class="avatar" src="472309244_1020428069889935_610367294775430_n.jpg" alt="Café do Lukas"/> @cafedolukas
+      </h3>
+      <p><span class="big-stat">+17%</span><br><span class="muted">de faturamento</span></p>
+      <div class="bar" data-pct="17"><i></i><span class="label">+17%</span></div>
+    </div>
+
+    <div class="card">
+      <div class="chip">Faturamento</div>
+      <h3 style="margin-top:10px" class="row">
+        <img class="avatar" src="443915431_8196905620320720_8178437870285475293_n.jpg" alt="Deck Mineiro"/> @deckmineirorestaurante
+      </h3>
+      <p><span class="big-stat">+16%</span><br><span class="muted">de faturamento</span></p>
+      <div class="bar" data-pct="16"><i></i><span class="label">+16%</span></div>
+    </div>
+
+    <div class="card">
+      <div class="chip">Faturamento</div>
+      <h3 style="margin-top:10px" class="row">
+        <img class="avatar" src="400183919_1980339305668472_7001188384868815222_n.jpg" alt="Mimos Moda Feminina"/> @mimosmodafeminina
+      </h3>
+      <p><span class="big-stat">+16%</span><br><span class="muted">de faturamento</span></p>
+      <div class="bar" data-pct="16"><i></i><span class="label">+16%</span></div>
+    </div>
+
+    <div class="card">
+      <div class="chip">Faturamento</div>
+      <h3 style="margin-top:10px" class="row">
+        <img class="avatar" src="482820287_502093009614480_9111632158265323013_n.jpg" alt="Goldskull Suplementos"/> @goldskull.suplementos
+      </h3>
+      <p><span class="big-stat">+14%</span><br><span class="muted">de faturamento</span></p>
+      <div class="bar" data-pct="14"><i></i><span class="label">+14%</span></div>
+    </div>
+  </div>
+</section>
